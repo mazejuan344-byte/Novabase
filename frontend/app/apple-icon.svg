@@ -1,0 +1,46 @@
+<svg width="180" height="180" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Cyan-blue gradient for top element -->
+    <linearGradient id="apple-top" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06B6D4" stop-opacity="1" />
+      <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.9" />
+    </linearGradient>
+    <!-- Deeper blue gradient for bottom element -->
+    <linearGradient id="apple-bottom" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#1E40AF" stop-opacity="1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle for better visibility -->
+  <circle cx="24" cy="24" r="24" fill="#0F172A" />
+  
+  <!-- Top ribbon element - curves upward and to the right -->
+  <path
+    d="M6 26 C8 18, 12 10, 20 8 C28 6, 34 10, 38 16 C40 20, 40 24, 38 28"
+    fill="url(#apple-top)"
+    stroke="url(#apple-top)"
+    stroke-width="0.5"
+    opacity="0.95"
+  />
+  
+  <!-- Bottom ribbon element - curves downward and to the right, overlapping -->
+  <path
+    d="M10 22 C12 30, 16 38, 24 40 C32 42, 38 38, 42 32 C44 28, 44 24, 42 20"
+    fill="url(#apple-bottom)"
+    stroke="url(#apple-bottom)"
+    stroke-width="0.5"
+    opacity="0.9"
+  />
+  
+  <!-- Subtle highlight on overlap for depth -->
+  <path
+    d="M28 18 Q32 20, 36 22"
+    stroke="#FFFFFF"
+    stroke-width="1"
+    fill="none"
+    stroke-linecap="round"
+    opacity="0.25"
+  />
+</svg>
+
