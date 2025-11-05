@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useAuthStore } from '@/lib/store'
 import api from '@/lib/api'
 import { FiMail, FiLock } from 'react-icons/fi'
-import CryptexLogo from '@/components/CryptexLogo'
+import NovabaseLogo from '@/components/NovabaseLogo'
 import ThemeToggle from '@/components/ThemeToggle'
 
 export default function SignInPage() {
@@ -54,7 +54,7 @@ export default function SignInPage() {
         </div>
         <div className="text-center mb-6 sm:mb-8">
           <Link href="/" className="inline-block mb-3 sm:mb-4">
-            <CryptexLogo size="lg" />
+            <NovabaseLogo size="lg" />
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-gradient">
             Sign In
