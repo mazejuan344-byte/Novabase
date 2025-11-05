@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
-import { FiSettings, FiSearch, FiArrowUp, FiArrowDown, FiZap } from 'react-icons/fi'
+import { useAuthStore } from '@/lib/store'
+import { FiMenu, FiX, FiArrowUp, FiArrowDown, FiZap } from 'react-icons/fi'
 import { motion } from 'framer-motion'
 
 interface CryptoAsset {
@@ -18,6 +19,7 @@ interface CryptoAsset {
 
 export default function DashboardPage() {
   const router = useRouter()
+  const { mobileMenuOpen, toggleMobileMenu } = useAuthStore()
   const [dashboardData, setDashboardData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'crypto' | 'investments'>('crypto')
@@ -51,10 +53,6 @@ export default function DashboardPage() {
     balance_eth: 0,
     balance_usdt: 0
   }
-
-  // Calculate total balance
-  const totalBalance = parseFloat(account.balance_usd || 0)
-  const totalChange = 0 // Would come from API in real app
 
   // Crypto assets list
   const cryptoAssets: CryptoAsset[] = [
@@ -96,22 +94,30 @@ export default function DashboardPage() {
     }
   ].filter(asset => asset.balance > 0 || asset.symbol === 'USD')
 
+  // Calculate total balance from all deposits (sum of all crypto assets converted to USD)
+  const totalBalance = cryptoAssets.reduce((sum, asset) => sum + asset.balanceUsd, 0)
+  const totalChange = 0 // Would come from API in real app
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header - Mobile Wallet Style */}
       <div className="flex items-center justify-between mb-4 sm:mb-6">
-        <div className="flex items-center space-x-2 sm:space-x-4">
-          <button className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-colors">
-            <FiSettings className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-600 dark:text-neutral-400" />
+        <div className="flex items-center space-x-2 sm:space-x-3">
+          <button 
+            onClick={toggleMobileMenu}
+            className="md:hidden p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-colors"
+          >
+            {mobileMenuOpen ? (
+              <FiX className="w-5 h-5 text-neutral-900 dark:text-neutral-100" />
+            ) : (
+              <FiMenu className="w-5 h-5 text-neutral-900 dark:text-neutral-100" />
+            )}
           </button>
-          <h1 className="text-lg sm:text-xl font-bold text-neutral-900 dark:text-neutral-100">
+          <h1 className="text-lg sm:text-xl font-bold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
             Main Wallet
-            <span className="ml-2 w-2 h-2 bg-green-500 rounded-full inline-block"></span>
+            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
           </h1>
         </div>
-        <button className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-colors">
-          <FiSearch className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-600 dark:text-neutral-400" />
-        </button>
       </div>
 
       {/* Total Balance Card - Prominent Display */}

@@ -48,32 +48,30 @@ CREATE TABLE IF NOT EXISTS transactions (
     wallet_address VARCHAR(255),
     deposit_address VARCHAR(255),
     admin_notes TEXT,
-    rejection_reason TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Investment plans
+-- Investment plans table
 CREATE TABLE IF NOT EXISTS investment_plans (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     description TEXT,
-    min_amount DECIMAL(20, 8) NOT NULL,
-    max_amount DECIMAL(20, 8),
     interest_rate DECIMAL(5, 2) NOT NULL,
     duration_days INTEGER NOT NULL,
+    min_amount DECIMAL(20, 8),
+    max_amount DECIMAL(20, 8),
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- User investments
+-- Investments table
 CREATE TABLE IF NOT EXISTS investments (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     plan_id INTEGER REFERENCES investment_plans(id),
     amount DECIMAL(20, 8) NOT NULL,
-    currency VARCHAR(10) NOT NULL,
     expected_return DECIMAL(20, 8),
     status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'completed', 'cancelled')),
     start_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -82,46 +80,24 @@ CREATE TABLE IF NOT EXISTS investments (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Insert default crypto addresses
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_accounts_user_id ON accounts(user_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status);
+CREATE INDEX IF NOT EXISTS idx_investments_user_id ON investments(user_id);
+CREATE INDEX IF NOT EXISTS idx_investments_status ON investments(status);
+
+-- Insert default investment plans
+INSERT INTO investment_plans (name, description, interest_rate, duration_days, min_amount, max_amount) VALUES
+('Starter', 'Perfect for beginners', 5.00, 30, 100, 10000),
+('Growth', 'For serious investors', 8.50, 60, 5000, 50000),
+('Premium', 'Maximum returns', 12.00, 90, 10000, 100000)
+ON CONFLICT DO NOTHING;
+
+-- Insert default crypto addresses (replace with your actual addresses)
 INSERT INTO crypto_addresses (currency, address) VALUES
-('BTC', '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'),
+('BTC', 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'),
 ('ETH', '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb'),
 ('USDT', '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb')
 ON CONFLICT DO NOTHING;
-
--- Insert default investment plans
-INSERT INTO investment_plans (name, description, min_amount, max_amount, interest_rate, duration_days) VALUES
-('Starter Plan', 'Perfect for beginners', 100, 10000, 5.0, 30),
-('Growth Plan', 'For serious investors', 1000, 50000, 8.5, 60),
-('Premium Plan', 'Maximum returns', 5000, 200000, 12.0, 90)
-ON CONFLICT DO NOTHING;
-
--- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
-CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);
-CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status);
-CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(type);
-CREATE INDEX IF NOT EXISTS idx_investments_user_id ON investments(user_id);
-
--- Function to update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
--- Triggers for updated_at
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_accounts_updated_at BEFORE UPDATE ON accounts
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_transactions_updated_at BEFORE UPDATE ON transactions
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-
-

@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
 import NovabaseLogo from './NovabaseLogo'
@@ -15,9 +14,7 @@ import {
   FiUser,
   FiLogOut,
   FiSettings,
-  FiZap,
-  FiMenu,
-  FiX
+  FiZap
 } from 'react-icons/fi'
 
 interface NavItem {
@@ -45,8 +42,7 @@ const adminNavItems: NavItem[] = [
 export default function Sidebar() {
   const router = useRouter()
   const pathname = usePathname()
-  const { user, logout } = useAuthStore()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { user, logout, mobileMenuOpen, setMobileMenuOpen } = useAuthStore()
 
   const navItems = user?.role === 'admin' ? adminNavItems : userNavItems
 
@@ -63,18 +59,6 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-white dark:bg-neutral-900 rounded-xl shadow-lg border border-neutral-200 dark:border-neutral-800"
-      >
-        {mobileMenuOpen ? (
-          <FiX className="w-6 h-6 text-neutral-900 dark:text-neutral-100" />
-        ) : (
-          <FiMenu className="w-6 h-6 text-neutral-900 dark:text-neutral-100" />
-        )}
-      </button>
-
       {/* Mobile Overlay */}
       {mobileMenuOpen && (
         <div

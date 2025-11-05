@@ -88,3 +88,4 @@ export default function NovabaseLogo({ size = 'md', className = '' }: NovabaseLo
   )
 }
 
+

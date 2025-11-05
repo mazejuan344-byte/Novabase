@@ -16,9 +16,12 @@ interface AuthState {
   token: string | null
   isAuthenticated: boolean
   isLoading: boolean
+  mobileMenuOpen: boolean
   setAuth: (token: string, user: User) => void
   logout: () => void
   checkAuth: () => Promise<void>
+  toggleMobileMenu: () => void
+  setMobileMenuOpen: (open: boolean) => void
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -26,6 +29,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   token: null,
   isAuthenticated: false,
   isLoading: true,
+  mobileMenuOpen: false,
   
   setAuth: (token: string, user: User) => {
     Cookies.set('token', token, { expires: 7 })
@@ -57,7 +61,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ token: null, user: null, isAuthenticated: false, isLoading: false })
     }
   },
+  
+  toggleMobileMenu: () => set((state) => ({ mobileMenuOpen: !state.mobileMenuOpen })),
+  setMobileMenuOpen: (open: boolean) => set({ mobileMenuOpen: open }),
 }))
+
 
 
 

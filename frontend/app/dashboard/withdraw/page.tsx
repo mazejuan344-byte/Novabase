@@ -136,10 +136,10 @@ export default function WithdrawPage() {
 
           <button
             type="submit"
-            disabled={loading || parseFloat(formData.amount) > getAvailableBalance()}
+            disabled={true}
             className="btn-primary w-full min-h-[48px] disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
           >
-            {loading ? 'Submitting...' : 'Submit Withdrawal Request'}
+            Submit Withdrawal Request
           </button>
         </form>
       </div>
