@@ -9,12 +9,8 @@ export const metadata: Metadata = {
   title: 'Novabase - Secure Crypto Investing Made Simple',
   description: 'Professional crypto investment broker platform',
   icons: {
-    icon: [
-      { url: '/icon.svg', type: 'image/svg+xml' },
-    ],
-    apple: [
-      { url: '/apple-icon.svg', sizes: '180x180', type: 'image/svg+xml' },
-    ],
+    icon: '/icon.svg',
+    apple: '/apple-icon.svg',
   },
 }
 
