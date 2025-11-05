@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import api from '@/lib/api'
-import { FiUsers, FiDollarSign, FiClock, FiTrendingUp } from 'react-icons/fi'
+import { useAuthStore } from '@/lib/store'
+import { FiUsers, FiDollarSign, FiClock, FiTrendingUp, FiMenu, FiX } from 'react-icons/fi'
 
 export default function AdminDashboardPage() {
+  const { mobileMenuOpen, toggleMobileMenu } = useAuthStore()
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
@@ -33,9 +35,24 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6 md:space-y-8">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2 text-neutral-900 dark:text-neutral-100">Admin Dashboard</h1>
-        <p className="text-sm sm:text-base text-neutral-600 dark:text-neutral-400">Platform overview and statistics</p>
+      {/* Header with Mobile Navigation */}
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
+        <div className="flex items-center space-x-2 sm:space-x-3">
+          <button 
+            onClick={toggleMobileMenu}
+            className="md:hidden p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-colors"
+          >
+            {mobileMenuOpen ? (
+              <FiX className="w-5 h-5 text-neutral-900 dark:text-neutral-100" />
+            ) : (
+              <FiMenu className="w-5 h-5 text-neutral-900 dark:text-neutral-100" />
+            )}
+          </button>
+          <div>
+            <h1 className="text-lg sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2 text-neutral-900 dark:text-neutral-100">Admin Dashboard</h1>
+            <p className="text-xs sm:text-sm md:text-base text-neutral-600 dark:text-neutral-400">Platform overview and statistics</p>
+          </div>
+        </div>
       </div>
 
       {/* Stats Cards */}
