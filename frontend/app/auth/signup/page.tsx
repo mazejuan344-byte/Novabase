@@ -97,7 +97,7 @@ export default function SignUpPage() {
             </div>
 
             <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Email</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Email</label>
               <div className="relative">
                 <FiMail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
@@ -112,7 +112,7 @@ export default function SignUpPage() {
             </div>
 
             <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Password</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Password</label>
               <div className="relative">
                 <FiLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
@@ -148,4 +148,3 @@ export default function SignUpPage() {
     </div>
   )
 }
-
