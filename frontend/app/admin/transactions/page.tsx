@@ -79,10 +79,10 @@ export default function AdminTransactionsPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-6 md:space-y-8">
       <div>
-        <h1 className="text-3xl font-bold mb-2 text-neutral-900 dark:text-neutral-100">Transaction Management</h1>
-        <p className="text-neutral-600 dark:text-neutral-400">Review and approve/reject transactions</p>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2 text-neutral-900 dark:text-neutral-100">Transaction Management</h1>
+        <p className="text-sm sm:text-base text-neutral-600 dark:text-neutral-400">Review and approve/reject transactions</p>
       </div>
 
       <div className="card-modern overflow-hidden">
@@ -158,48 +158,48 @@ export default function AdminTransactionsPage() {
 
       {/* Modal */}
       {showModal && selectedTx && (
-        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="card-modern max-w-md w-full">
-            <h2 className="text-2xl font-bold mb-4 text-neutral-900 dark:text-neutral-100">
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-3 sm:p-4">
+          <div className="card-modern max-w-md w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-neutral-900 dark:text-neutral-100">
               {actionType === 'approve' ? 'Approve' : 'Reject'} Transaction
             </h2>
-            <div className="space-y-4 mb-6">
+            <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
               <div>
-                <div className="text-sm text-neutral-600 dark:text-neutral-400">User</div>
-                <div className="font-medium text-neutral-900 dark:text-neutral-100">{selectedTx.email}</div>
+                <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">User</div>
+                <div className="font-medium text-sm sm:text-base text-neutral-900 dark:text-neutral-100 break-words">{selectedTx.email}</div>
               </div>
               <div>
-                <div className="text-sm text-neutral-600 dark:text-neutral-400">Amount</div>
-                <div className="font-medium text-neutral-900 dark:text-neutral-100">{selectedTx.amount} {selectedTx.currency}</div>
+                <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">Amount</div>
+                <div className="font-medium text-sm sm:text-base text-neutral-900 dark:text-neutral-100">{selectedTx.amount} {selectedTx.currency}</div>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2 text-neutral-700 dark:text-neutral-300">
+                <label className="block text-xs sm:text-sm font-medium mb-2 text-neutral-700 dark:text-neutral-300">
                   {actionType === 'approve' ? 'Notes (optional)' : 'Rejection Reason *'}
                 </label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   required={actionType === 'reject'}
-                  rows={4}
-                  className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-neutral-900 dark:text-neutral-100 transition-all"
+                  rows={3}
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm sm:text-base text-neutral-900 dark:text-neutral-100 transition-all"
                   placeholder={actionType === 'approve' ? 'Add notes...' : 'Enter rejection reason...'}
                 />
               </div>
             </div>
-            <div className="flex space-x-4">
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
               <button
                 onClick={() => {
                   setShowModal(false)
                   setSelectedTx(null)
                   setNotes('')
                 }}
-                className="btn-secondary flex-1"
+                className="btn-secondary flex-1 py-2.5 sm:py-3 text-sm sm:text-base"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAction}
-                className={`flex-1 px-6 py-3 rounded-xl font-semibold text-white transition-colors ${
+                className={`flex-1 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold text-sm sm:text-base text-white transition-colors ${
                   actionType === 'approve'
                     ? 'bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700'
                     : 'bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700'

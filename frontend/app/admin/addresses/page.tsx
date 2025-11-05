@@ -55,10 +55,10 @@ export default function AdminAddressesPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-6 md:space-y-8">
       <div>
-        <h1 className="text-3xl font-bold mb-2 text-neutral-900 dark:text-neutral-100">Crypto Address Management</h1>
-        <p className="text-neutral-600 dark:text-neutral-400">Manage deposit addresses for cryptocurrencies</p>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2 text-neutral-900 dark:text-neutral-100">Crypto Address Management</h1>
+        <p className="text-sm sm:text-base text-neutral-600 dark:text-neutral-400">Manage deposit addresses for cryptocurrencies</p>
       </div>
 
       <div className="card-modern overflow-hidden">
