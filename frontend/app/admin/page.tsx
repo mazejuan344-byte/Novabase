@@ -10,20 +10,31 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    fetchStats()
-  }, [])
-
-  const fetchStats = async () => {
+  const fetchStats = async (isInitialLoad = false) => {
     try {
       const response = await api.get('/admin/dashboard')
       setStats(response.data)
     } catch (error) {
       console.error('Failed to fetch stats:', error)
     } finally {
-      setLoading(false)
+      if (isInitialLoad) {
+        setLoading(false)
+      }
     }
   }
+
+  useEffect(() => {
+    // Fetch stats immediately on mount
+    fetchStats(true)
+
+    // Set up automatic polling every 5 seconds
+    const interval = setInterval(() => {
+      fetchStats(false)
+    }, 5000)
+
+    // Cleanup interval on unmount
+    return () => clearInterval(interval)
+  }, [])
 
   if (loading) {
     return (
