@@ -36,11 +36,7 @@ export default function AdminTransactionsPage() {
       if (actionType === 'approve') {
         await api.post(`/admin/transactions/${selectedTx.id}/approve`, { notes })
       } else {
-        if (!notes.trim()) {
-          alert('Please provide a rejection reason')
-          return
-        }
-        await api.post(`/admin/transactions/${selectedTx.id}/reject`, { reason: notes })
+        await api.post(`/admin/transactions/${selectedTx.id}/reject`, { reason: notes || null })
       }
       setShowModal(false)
       setSelectedTx(null)
@@ -191,15 +187,14 @@ export default function AdminTransactionsPage() {
               </div>
               <div>
                 <label className="block text-xs sm:text-sm font-medium mb-2 text-neutral-700 dark:text-neutral-300">
-                  {actionType === 'approve' ? 'Notes (optional)' : 'Rejection Reason *'}
+                  {actionType === 'approve' ? 'Notes (optional)' : 'Rejection Reason (optional)'}
                 </label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  required={actionType === 'reject'}
                   rows={3}
                   className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm sm:text-base text-neutral-900 dark:text-neutral-100 transition-all"
-                  placeholder={actionType === 'approve' ? 'Add notes...' : 'Enter rejection reason...'}
+                  placeholder={actionType === 'approve' ? 'Add notes...' : 'Enter rejection reason (optional)...'}
                 />
               </div>
             </div>

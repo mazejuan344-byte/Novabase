@@ -180,7 +180,7 @@ router.post('/transactions/:id/approve', [
 
 // Reject transaction
 router.post('/transactions/:id/reject', [
-  body('reason').notEmpty().trim()
+  body('reason').optional().trim()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -195,7 +195,7 @@ router.post('/transactions/:id/reject', [
        SET status = 'rejected', rejection_reason = $1 
        WHERE id = $2 AND status = 'pending'
        RETURNING *`,
-      [reason, req.params.id]
+      [reason || null, req.params.id]
     );
 
     if (result.rows.length === 0) {
@@ -288,6 +288,8 @@ router.get('/dashboard', async (req, res) => {
 });
 
 module.exports = router;
+
+
 
 
 
