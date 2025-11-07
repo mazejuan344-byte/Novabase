@@ -190,22 +190,41 @@ router.post('/transactions/:id/reject', [
 
     const { reason } = req.body;
 
+    // First check if transaction exists
+    const transResult = await pool.query(
+      'SELECT * FROM transactions WHERE id = $1',
+      [req.params.id]
+    );
+
+    if (transResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Transaction not found' });
+    }
+
+    const transaction = transResult.rows[0];
+
+    if (transaction.status !== 'pending') {
+      return res.status(400).json({ message: 'Transaction is not pending' });
+    }
+
+    // Update transaction status using admin_notes field for rejection reason
     const result = await pool.query(
       `UPDATE transactions 
-       SET status = 'rejected', rejection_reason = $1 
+       SET status = 'rejected', admin_notes = $1 
        WHERE id = $2 AND status = 'pending'
        RETURNING *`,
       [reason || null, req.params.id]
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'Transaction not found or already processed' });
+      return res.status(400).json({ message: 'Transaction could not be rejected. It may have been processed already.' });
     }
 
     res.json({ message: 'Transaction rejected successfully' });
   } catch (error) {
     console.error('Reject transaction error:', error);
-    res.status(500).json({ message: 'Server error' });
+    // Provide more specific error message
+    const errorMessage = error.message || 'An error occurred while rejecting the transaction';
+    res.status(500).json({ message: errorMessage });
   }
 });
 
