@@ -57,13 +57,18 @@ export default function SupportPage() {
     if (!message.trim() || sending) return
 
     // Determine subject - use existing ticket subject with "Re: " prefix if replying
-    const ticketSubject = selectedTicket 
+    let ticketSubject = selectedTicket 
       ? (selectedTicket.subject.startsWith('Re: ') 
           ? selectedTicket.subject 
           : `Re: ${selectedTicket.subject}`)
       : (subject.trim() || 'Support Request')
+    
+    // Ensure subject is not empty (validation requirement)
+    if (!ticketSubject.trim()) {
+      ticketSubject = 'Support Request'
+    }
 
-    await createNewTicket(ticketSubject)
+    await createNewTicket(ticketSubject.trim())
   }
 
   const createNewTicket = async (ticketSubject: string) => {
@@ -81,7 +86,17 @@ export default function SupportPage() {
       await fetchTickets()
       setSelectedTicket(response.data.ticket)
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to send message')
+      console.error('Failed to send message:', error)
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          error.message || 
+                          'Failed to send message. Please try again.'
+      alert(errorMessage)
+      
+      // If it's a migration error, show helpful message
+      if (errorMessage.includes('migration') || errorMessage.includes('table does not exist')) {
+        alert('Database migration required. Please contact the administrator.')
+      }
     } finally {
       setSending(false)
     }
@@ -211,7 +226,7 @@ export default function SupportPage() {
                   <div className="flex justify-center">
                     <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg px-4 py-2">
                       <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                        Waiting for admin response...
+                        Waiting for support response...
                       </p>
                     </div>
                   </div>

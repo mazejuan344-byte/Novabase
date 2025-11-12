@@ -18,17 +18,44 @@ router.post('/tickets', [
 
     const { subject, message, priority = 'medium' } = req.body;
 
+    // Ensure subject and message are not empty after trimming
+    const trimmedSubject = subject?.trim() || 'Support Request';
+    const trimmedMessage = message?.trim();
+    
+    if (!trimmedMessage) {
+      return res.status(400).json({ message: 'Message cannot be empty' });
+    }
+
     const result = await pool.query(
       `INSERT INTO support_tickets (user_id, subject, message, priority)
        VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [req.user.id, subject, message, priority]
+      [req.user.id, trimmedSubject, trimmedMessage, priority]
     );
 
     res.status(201).json({ ticket: result.rows[0] });
   } catch (error) {
     console.error('Create ticket error:', error);
-    res.status(500).json({ message: 'Server error' });
+    
+    // Provide more detailed error messages
+    if (error.code === '42P01') {
+      return res.status(500).json({ 
+        message: 'Support tickets table does not exist. Please run the database migration.',
+        error: 'Table not found'
+      });
+    }
+    
+    if (error.code === '23503') {
+      return res.status(400).json({ 
+        message: 'Invalid user ID',
+        error: 'Foreign key constraint violation'
+      });
+    }
+    
+    res.status(500).json({ 
+      message: error.message || 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 

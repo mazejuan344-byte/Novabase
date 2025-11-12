@@ -58,6 +58,10 @@ app.use('/api/admin', authenticateToken, adminRoutes);
 app.use('/api/crypto', authenticateToken, cryptoRoutes);
 app.use('/api/support', authenticateToken, supportRoutes);
 
+// Test route for support table (can be removed after testing)
+const supportTestRoutes = require('./routes/support-test');
+app.use('/api/support', authenticateToken, supportTestRoutes);
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
