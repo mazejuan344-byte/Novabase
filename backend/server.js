@@ -56,8 +56,11 @@ const generalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
-    // Skip rate limiting for health checks
-    return req.path === '/api/health' || disableRateLimit;
+    // Skip rate limiting for health checks and support routes
+    // Support messages are critical and should never be blocked
+    const isHealthCheck = req.path === '/api/health';
+    const isSupportRoute = req.path.startsWith('/api/support');
+    return isHealthCheck || isSupportRoute || disableRateLimit;
   }
 });
 
