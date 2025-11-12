@@ -39,34 +39,57 @@ app.use(cors({
   credentials: true
 }));
 
-// Rate limiting - General API limit
+// Rate limiting - Environment-based configuration
+// Can be disabled via DISABLE_RATE_LIMIT environment variable
+const isDevelopment = process.env.NODE_ENV !== 'production';
+const disableRateLimit = process.env.DISABLE_RATE_LIMIT === 'true';
+
+// General API limit - Very lenient to prevent blocking legitimate users
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // limit each IP to 200 requests per 15 minutes
-  message: 'Too many requests from this IP, please try again later.',
+  max: isDevelopment ? 2000 : 1000, // Very high limits to prevent blocking
+  message: {
+    error: 'Too many requests',
+    message: 'Too many requests from this IP, please try again later.',
+    retryAfter: 15
+  },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for health checks
+    return req.path === '/api/health' || disableRateLimit;
+  }
 });
 
-// More lenient rate limit for auth endpoints (sign in/sign up)
+// Auth endpoints - Very lenient for sign-in
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // limit each IP to 20 auth requests per 15 minutes
-  message: 'Too many sign-in attempts. Please try again in a few minutes.',
+  max: isDevelopment ? 200 : 100, // Much higher limit for auth
+  message: {
+    error: 'Too many sign-in attempts',
+    message: 'Too many sign-in attempts. Please try again in a few minutes.',
+    retryAfter: 15
+  },
   standardHeaders: true,
   legacyHeaders: false,
-  skipSuccessfulRequests: true, // Don't count successful requests
+  skipSuccessfulRequests: true, // Don't count successful sign-ins
+  skipFailedRequests: false, // Count failed attempts to prevent brute force
+  skip: () => disableRateLimit // Skip if disabled
 });
 
-// Apply rate limiting
-app.use('/api/auth', authLimiter); // Auth routes get more lenient limit
-app.use('/api/', generalLimiter); // All other routes
+// Apply rate limiting only if not disabled
+if (!disableRateLimit) {
+  app.use('/api/auth', authLimiter); // Auth routes
+  app.use('/api/', generalLimiter); // All other routes (applies after auth)
+} else {
+  console.log('⚠️  Rate limiting is DISABLED (DISABLE_RATE_LIMIT=true)');
+}
 
 // Body parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Routes
+// Routes (auth routes are before general limiter to use authLimiter)
 app.use('/api/auth', authRoutes);
 app.use('/api/users', authenticateToken, userRoutes);
 app.use('/api/transactions', authenticateToken, transactionRoutes);
