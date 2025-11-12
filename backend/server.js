@@ -39,12 +39,28 @@ app.use(cors({
   credentials: true
 }));
 
-// Rate limiting
-const limiter = rateLimit({
+// Rate limiting - General API limit
+const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 200, // limit each IP to 200 requests per 15 minutes
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
 });
-app.use('/api/', limiter);
+
+// More lenient rate limit for auth endpoints (sign in/sign up)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // limit each IP to 20 auth requests per 15 minutes
+  message: 'Too many sign-in attempts. Please try again in a few minutes.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true, // Don't count successful requests
+});
+
+// Apply rate limiting
+app.use('/api/auth', authLimiter); // Auth routes get more lenient limit
+app.use('/api/', generalLimiter); // All other routes
 
 // Body parsing
 app.use(express.json());
@@ -62,7 +78,7 @@ app.use('/api/support', authenticateToken, supportRoutes);
 const supportTestRoutes = require('./routes/support-test');
 app.use('/api/support', authenticateToken, supportTestRoutes);
 
-// Health check
+// Health check (no rate limiting)
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
