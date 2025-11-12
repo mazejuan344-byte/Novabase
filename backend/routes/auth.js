@@ -78,10 +78,22 @@ router.post('/signin', [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return res.status(400).json({ 
+        message: 'Validation failed: ' + errors.array().map(e => e.msg).join(', '),
+        errors: errors.array() 
+      });
     }
 
     const { email, password } = req.body;
+
+    // Check JWT_SECRET is configured
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not configured');
+      return res.status(500).json({ 
+        message: 'Server configuration error. Please contact support.',
+        error: 'JWT_SECRET missing'
+      });
+    }
 
     // Find user
     const result = await pool.query(
@@ -90,20 +102,20 @@ router.post('/signin', [
     );
 
     if (result.rows.length === 0) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
 
     const user = result.rows[0];
 
     if (!user.is_active) {
-      return res.status(403).json({ message: 'Account is inactive' });
+      return res.status(403).json({ message: 'Account is inactive. Please contact support.' });
     }
 
     // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
 
     if (!isValidPassword) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
 
     // Generate token
@@ -124,7 +136,33 @@ router.post('/signin', [
     });
   } catch (error) {
     console.error('Signin error:', error);
-    res.status(500).json({ message: 'Server error during signin' });
+    
+    // Provide more detailed error messages
+    if (error.code === '42P01') {
+      return res.status(500).json({ 
+        message: 'Database table does not exist. Please run the database migration.',
+        error: 'Table not found'
+      });
+    }
+    
+    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+      return res.status(500).json({ 
+        message: 'Database connection failed. Please check your database configuration.',
+        error: 'Connection error'
+      });
+    }
+    
+    if (error.name === 'JsonWebTokenError' || error.message?.includes('JWT_SECRET')) {
+      return res.status(500).json({ 
+        message: 'Server configuration error. JWT_SECRET is missing or invalid.',
+        error: 'Configuration error'
+      });
+    }
+    
+    res.status(500).json({ 
+      message: error.message || 'Server error during signin',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
@@ -158,6 +196,11 @@ router.get('/verify', async (req, res) => {
 });
 
 module.exports = router;
+
+
+
+
+
 
 
 

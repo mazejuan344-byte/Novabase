@@ -40,7 +40,19 @@ export default function SignInPage() {
         router.push('/dashboard')
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Sign in failed')
+      console.error('Sign in error:', err)
+      const errorMessage = err.response?.data?.message || 
+                          err.response?.data?.error || 
+                          err.message || 
+                          'Sign in failed. Please check your credentials and try again.'
+      setError(errorMessage)
+      
+      // Show helpful messages for specific errors
+      if (errorMessage.includes('Database') || errorMessage.includes('migration')) {
+        setError('Database configuration issue. Please contact support.')
+      } else if (errorMessage.includes('connection') || errorMessage.includes('Connection')) {
+        setError('Unable to connect to server. Please try again later.')
+      }
     } finally {
       setLoading(false)
     }
