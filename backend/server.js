@@ -44,46 +44,37 @@ app.use(cors({
 const isDevelopment = process.env.NODE_ENV !== 'production';
 const disableRateLimit = process.env.DISABLE_RATE_LIMIT === 'true';
 
-// General API limit - Very lenient to prevent blocking legitimate users
-const generalLimiter = rateLimit({
+// Auth endpoints - Only rate limit unauthenticated endpoints (sign-in/sign-up)
+// This prevents brute force attacks while allowing legitimate users
+// All other routes (users, transactions, admin, crypto, support) are EXCLUDED
+// because they require authentication (JWT tokens), which already provides protection
+const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: isDevelopment ? 2000 : 1000, // Very high limits to prevent blocking
+  max: isDevelopment ? 50 : 30, // Reasonable limit for auth attempts
   message: {
-    error: 'Too many requests',
-    message: 'Too many requests from this IP, please try again later.',
+    error: 'Too many sign-in attempts',
+    message: 'Too many authentication attempts. Please try again in a few minutes.',
     retryAfter: 15
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skipSuccessfulRequests: true, // Don't count successful sign-ins/sign-ups
+  skipFailedRequests: false, // Count failed attempts to prevent brute force
   skip: (req) => {
-    // Skip rate limiting for health checks and support routes
-    // Support messages are critical and should never be blocked
-    const isHealthCheck = req.path === '/api/health';
-    const isSupportRoute = req.path.startsWith('/api/support');
-    return isHealthCheck || isSupportRoute || disableRateLimit;
+    if (disableRateLimit) return true;
+    // Only rate limit sign-in and sign-up endpoints
+    // All other auth endpoints (if any) are excluded
+    return !req.path.match(/\/api\/auth\/(signin|signup)$/);
   }
 });
 
-// Auth endpoints - Very lenient for sign-in
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: isDevelopment ? 200 : 100, // Much higher limit for auth
-  message: {
-    error: 'Too many sign-in attempts',
-    message: 'Too many sign-in attempts. Please try again in a few minutes.',
-    retryAfter: 15
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skipSuccessfulRequests: true, // Don't count successful sign-ins
-  skipFailedRequests: false, // Count failed attempts to prevent brute force
-  skip: () => disableRateLimit // Skip if disabled
-});
-
-// Apply rate limiting only if not disabled
+// Apply rate limiting ONLY for auth endpoints (to prevent brute force)
+// All other routes are automatically excluded - no rate limiter applied to them
+// Excluded routes: /api/users, /api/transactions, /api/admin, /api/crypto, /api/support, /api/health
 if (!disableRateLimit) {
-  app.use('/api/auth', authLimiter); // Auth routes
-  app.use('/api/', generalLimiter); // All other routes (applies after auth)
+  app.use('/api/auth', authLimiter); // Only auth routes get rate limited
+  console.log('✅ Rate limiting enabled for authentication endpoints only');
+  console.log('✅ All authenticated routes excluded: /api/users, /api/transactions, /api/admin, /api/crypto, /api/support');
 } else {
   console.log('⚠️  Rate limiting is DISABLED (DISABLE_RATE_LIMIT=true)');
 }
