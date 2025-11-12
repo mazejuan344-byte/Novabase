@@ -1,0 +1,443 @@
+'use client'
+
+import { useState, useEffect, useRef } from 'react'
+import api from '@/lib/api'
+import { useAuthStore } from '@/lib/store'
+import { FiSend, FiMessageCircle, FiUser, FiShield, FiMenu, FiX, FiCheckCircle, FiClock, FiAlertCircle } from 'react-icons/fi'
+import { motion } from 'framer-motion'
+
+interface SupportTicket {
+  id: number
+  user_id: number
+  subject: string
+  message: string
+  status: 'open' | 'in_progress' | 'resolved' | 'closed'
+  priority: 'low' | 'medium' | 'high' | 'urgent'
+  admin_response: string | null
+  admin_id: number | null
+  email: string
+  first_name: string | null
+  last_name: string | null
+  created_at: string
+  updated_at: string
+}
+
+export default function AdminSupportPage() {
+  const { mobileMenuOpen, toggleMobileMenu } = useAuthStore()
+  const [tickets, setTickets] = useState<SupportTicket[]>([])
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [response, setResponse] = useState('')
+  const [sending, setSending] = useState(false)
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [refreshing, setRefreshing] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    fetchTickets()
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(() => {
+      fetchTickets(true)
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [statusFilter])
+
+  useEffect(() => {
+    if (selectedTicket) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      // Refresh the selected ticket to get latest updates
+      if (selectedTicket.id) {
+        fetchTicket(selectedTicket.id)
+      }
+    }
+  }, [selectedTicket])
+
+  const fetchTickets = async (silent = false) => {
+    if (!silent) setLoading(true)
+    else setRefreshing(true)
+    try {
+      const params = statusFilter !== 'all' ? { status: statusFilter } : {}
+      const response = await api.get('/admin/support/tickets', { params })
+      const fetchedTickets = response.data.tickets || []
+      setTickets(fetchedTickets)
+      
+      // Update selected ticket if it exists
+      if (selectedTicket) {
+        const updatedTicket = fetchedTickets.find((t: SupportTicket) => t.id === selectedTicket.id)
+        if (updatedTicket) {
+          setSelectedTicket(updatedTicket)
+        }
+      } else if (fetchedTickets.length > 0) {
+        // Auto-select the first open or in_progress ticket
+        const openTicket = fetchedTickets.find((t: SupportTicket) => t.status === 'open' || t.status === 'in_progress')
+        setSelectedTicket(openTicket || fetchedTickets[0])
+      }
+    } catch (error) {
+      console.error('Failed to fetch tickets:', error)
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }
+
+  const fetchTicket = async (ticketId: number) => {
+    try {
+      const response = await api.get(`/admin/support/tickets/${ticketId}`)
+      setSelectedTicket(response.data.ticket)
+      // Also update it in the tickets list
+      setTickets(prev => prev.map(t => t.id === ticketId ? response.data.ticket : t))
+    } catch (error) {
+      console.error('Failed to fetch ticket:', error)
+    }
+  }
+
+  const handleSendResponse = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!response.trim() || !selectedTicket || sending) return
+
+    setSending(true)
+    try {
+      await api.post(`/admin/support/tickets/${selectedTicket.id}/respond`, {
+        response: response
+      })
+      setResponse('')
+      await fetchTicket(selectedTicket.id)
+      await fetchTickets(true)
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to send response')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const handleUpdateStatus = async (status: string) => {
+    if (!selectedTicket) return
+    
+    try {
+      await api.put(`/admin/support/tickets/${selectedTicket.id}/status`, { status })
+      await fetchTicket(selectedTicket.id)
+      await fetchTickets(true)
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to update status')
+    }
+  }
+
+  const getStatusBadge = (status: string) => {
+    const colors = {
+      open: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
+      in_progress: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400',
+      resolved: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
+      closed: 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'
+    }
+    return colors[status as keyof typeof colors] || colors.closed
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'open':
+        return <FiAlertCircle className="w-4 h-4" />
+      case 'in_progress':
+        return <FiClock className="w-4 h-4" />
+      case 'resolved':
+        return <FiCheckCircle className="w-4 h-4" />
+      default:
+        return <FiMessageCircle className="w-4 h-4" />
+    }
+  }
+
+  const getUserName = (ticket: SupportTicket) => {
+    if (ticket.first_name || ticket.last_name) {
+      return `${ticket.first_name || ''} ${ticket.last_name || ''}`.trim()
+    }
+    return ticket.email
+  }
+
+  const getUnreadCount = () => {
+    return tickets.filter(t => t.status === 'open' || (t.status === 'in_progress' && !t.admin_response)).length
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-4 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="h-[calc(100vh-8rem)] flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-2 sm:space-x-3">
+          <button 
+            onClick={toggleMobileMenu}
+            className="md:hidden p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-colors"
+          >
+            {mobileMenuOpen ? (
+              <FiX className="w-5 h-5 text-neutral-900 dark:text-neutral-100" />
+            ) : (
+              <FiMenu className="w-5 h-5 text-neutral-900 dark:text-neutral-100" />
+            )}
+          </button>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-1 text-neutral-900 dark:text-neutral-100">
+              Support Center
+            </h1>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400">
+              Manage customer support conversations
+            </p>
+          </div>
+        </div>
+        {refreshing && (
+          <div className="text-sm text-neutral-500 dark:text-neutral-400">
+            Refreshing...
+          </div>
+        )}
+      </div>
+
+      {/* Filter Tabs */}
+      <div className="flex space-x-2 mb-4 bg-neutral-100 dark:bg-neutral-800 p-1 rounded-xl">
+        <button
+          onClick={() => setStatusFilter('all')}
+          className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+            statusFilter === 'all'
+              ? 'bg-white dark:bg-neutral-900 text-blue-600 dark:text-blue-400 shadow-sm'
+              : 'text-neutral-600 dark:text-neutral-400'
+          }`}
+        >
+          All {tickets.length > 0 && `(${tickets.length})`}
+        </button>
+        <button
+          onClick={() => setStatusFilter('open')}
+          className={`px-4 py-2 rounded-lg font-medium text-sm transition-all relative ${
+            statusFilter === 'open'
+              ? 'bg-white dark:bg-neutral-900 text-blue-600 dark:text-blue-400 shadow-sm'
+              : 'text-neutral-600 dark:text-neutral-400'
+          }`}
+        >
+          Open {getUnreadCount() > 0 && (
+            <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">
+              {getUnreadCount()}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setStatusFilter('in_progress')}
+          className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+            statusFilter === 'in_progress'
+              ? 'bg-white dark:bg-neutral-900 text-blue-600 dark:text-blue-400 shadow-sm'
+              : 'text-neutral-600 dark:text-neutral-400'
+          }`}
+        >
+          In Progress
+        </button>
+        <button
+          onClick={() => setStatusFilter('resolved')}
+          className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+            statusFilter === 'resolved'
+              ? 'bg-white dark:bg-neutral-900 text-blue-600 dark:text-blue-400 shadow-sm'
+              : 'text-neutral-600 dark:text-neutral-400'
+          }`}
+        >
+          Resolved
+        </button>
+      </div>
+
+      <div className="flex-1 flex gap-4 overflow-hidden">
+        {/* Conversations List */}
+        <div className="w-80 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden flex flex-col">
+          <div className="p-4 border-b border-neutral-200 dark:border-neutral-800">
+            <h2 className="font-semibold text-neutral-900 dark:text-neutral-100">Conversations</h2>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {tickets.length === 0 ? (
+              <div className="p-4 text-center text-neutral-500 dark:text-neutral-400">
+                <FiMessageCircle className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No conversations</p>
+              </div>
+            ) : (
+              tickets.map((ticket) => {
+                const isUnread = (ticket.status === 'open' || (ticket.status === 'in_progress' && !ticket.admin_response))
+                return (
+                  <button
+                    key={ticket.id}
+                    onClick={() => setSelectedTicket(ticket)}
+                    className={`w-full text-left p-4 border-b border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors ${
+                      selectedTicket?.id === ticket.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                    } ${isUnread ? 'bg-yellow-50 dark:bg-yellow-900/10' : ''}`}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-sm text-neutral-900 dark:text-neutral-100 truncate">
+                          {getUserName(ticket)}
+                        </h3>
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
+                          {ticket.email}
+                        </p>
+                      </div>
+                      <span className={`px-2 py-1 rounded text-xs font-medium ml-2 flex items-center space-x-1 ${getStatusBadge(ticket.status)}`}>
+                        {getStatusIcon(ticket.status)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-neutral-600 dark:text-neutral-300 truncate mb-1">
+                      {ticket.subject}
+                    </p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate mb-1">
+                      {ticket.message.substring(0, 40)}...
+                    </p>
+                    <p className="text-xs text-neutral-400 dark:text-neutral-500">
+                      {new Date(ticket.created_at).toLocaleDateString()}
+                    </p>
+                    {isUnread && (
+                      <div className="mt-2 w-full h-1 bg-blue-500 rounded-full"></div>
+                    )}
+                  </button>
+                )
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Chat Area */}
+        <div className="flex-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden flex flex-col">
+          {selectedTicket ? (
+            <>
+              {/* Chat Header */}
+              <div className="p-4 border-b border-neutral-200 dark:border-neutral-800 bg-gradient-trust">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                      <FiUser className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-white">{getUserName(selectedTicket)}</h3>
+                      <p className="text-xs text-white/80">{selectedTicket.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(selectedTicket.status)}`}>
+                      {getStatusIcon(selectedTicket.status)}
+                      <span className="ml-1 capitalize">{selectedTicket.status.replace('_', ' ')}</span>
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Status Actions */}
+                <div className="flex space-x-2">
+                  {selectedTicket.status !== 'in_progress' && selectedTicket.status !== 'resolved' && (
+                    <button
+                      onClick={() => handleUpdateStatus('in_progress')}
+                      className="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs rounded-lg transition-colors"
+                    >
+                      Mark In Progress
+                    </button>
+                  )}
+                  {selectedTicket.status !== 'resolved' && (
+                    <button
+                      onClick={() => handleUpdateStatus('resolved')}
+                      className="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs rounded-lg transition-colors"
+                    >
+                      Mark Resolved
+                    </button>
+                  )}
+                  {selectedTicket.status !== 'closed' && (
+                    <button
+                      onClick={() => handleUpdateStatus('closed')}
+                      className="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs rounded-lg transition-colors"
+                    >
+                      Close
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Messages Area */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-neutral-50 dark:bg-neutral-950">
+                {/* User Message */}
+                <div className="flex justify-start">
+                  <div className="max-w-[70%] bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-2xl rounded-tl-none px-4 py-3 shadow-lg border border-neutral-200 dark:border-neutral-700">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <FiUser className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                        {getUserName(selectedTicket)}
+                      </span>
+                    </div>
+                    <p className="font-semibold text-sm mb-2">{selectedTicket.subject}</p>
+                    <p className="text-sm whitespace-pre-wrap">{selectedTicket.message}</p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-2">
+                      {new Date(selectedTicket.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Admin Response */}
+                {selectedTicket.admin_response && (
+                  <div className="flex justify-end">
+                    <div className="max-w-[70%] bg-gradient-trust text-white rounded-2xl rounded-tr-none px-4 py-3 shadow-lg">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <FiShield className="w-4 h-4 text-white/80" />
+                        <span className="text-xs font-semibold text-white/90">You (Admin)</span>
+                      </div>
+                      <p className="text-sm whitespace-pre-wrap">{selectedTicket.admin_response}</p>
+                      <p className="text-xs text-white/70 mt-2">
+                        {new Date(selectedTicket.updated_at).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {!selectedTicket.admin_response && (
+                  <div className="flex justify-center">
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg px-4 py-2">
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                        No response yet. Send a message to help the user.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Response Input */}
+              <form onSubmit={handleSendResponse} className="p-4 border-t border-neutral-200 dark:border-neutral-800">
+                <div className="flex space-x-2">
+                  <textarea
+                    value={response}
+                    onChange={(e) => setResponse(e.target.value)}
+                    placeholder="Type your response..."
+                    rows={3}
+                    className="flex-1 px-4 py-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all resize-none"
+                    disabled={sending}
+                    required
+                  />
+                  <button
+                    type="submit"
+                    disabled={!response.trim() || sending}
+                    className="px-6 py-3 bg-gradient-trust text-white rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 self-end"
+                  >
+                    <FiSend />
+                    <span>{sending ? 'Sending...' : 'Send'}</span>
+                  </button>
+                </div>
+              </form>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <FiMessageCircle className="w-16 h-16 text-neutral-400 dark:text-neutral-500 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
+                  Select a Conversation
+                </h3>
+                <p className="text-neutral-600 dark:text-neutral-400">
+                  Choose a conversation from the list to view and respond
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+

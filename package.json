@@ -7,7 +7,9 @@
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && npm run dev",
     "build": "cd frontend && npm run build",
-    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install"
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "migrate": "node database/migrations/run_migration.js database/migrations/001_add_support_tickets.sql",
+    "migrate:check": "cd backend && node -e \"require('dotenv').config(); const { Pool } = require('pg'); const pool = new Pool({ connectionString: process.env.DATABASE_URL }); pool.query('SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = \\'public\\' AND table_name = \\'support_tickets\\')').then(r => { console.log('Support tickets table exists:', r.rows[0].exists); pool.end(); }).catch(e => { console.error('Error:', e.message); process.exit(1); });\""
   },
   "keywords": ["crypto", "broker", "investment"],
   "author": "",

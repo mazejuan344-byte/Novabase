@@ -14,7 +14,8 @@ import {
   FiUser,
   FiLogOut,
   FiSettings,
-  FiZap
+  FiZap,
+  FiMessageCircle
 } from 'react-icons/fi'
 
 interface NavItem {
@@ -29,6 +30,7 @@ const userNavItems: NavItem[] = [
   { name: 'Send', href: '/dashboard/withdraw', icon: <FiArrowUp /> },
   { name: 'Investments', href: '/dashboard/investments', icon: <FiPieChart /> },
   { name: 'Transactions', href: '/dashboard/transactions', icon: <FiClock /> },
+  { name: 'Support', href: '/dashboard/support', icon: <FiMessageCircle /> },
   { name: 'Profile', href: '/dashboard/profile', icon: <FiUser /> },
 ]
 
@@ -36,6 +38,7 @@ const adminNavItems: NavItem[] = [
   { name: 'Dashboard', href: '/admin', icon: <FiHome /> },
   { name: 'Users', href: '/admin/users', icon: <FiUser /> },
   { name: 'Transactions', href: '/admin/transactions', icon: <FiClock /> },
+  { name: 'Support', href: '/admin/support', icon: <FiMessageCircle /> },
   { name: 'Crypto Addresses', href: '/admin/addresses', icon: <FiSettings /> },
 ]
 

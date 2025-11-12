@@ -306,6 +306,195 @@ router.get('/dashboard', async (req, res) => {
   }
 });
 
+// Get all support tickets
+router.get('/support/tickets', async (req, res) => {
+  try {
+    const { status, priority } = req.query;
+    let query = `SELECT st.*, u.email, u.first_name, u.last_name,
+                        admin.email as admin_email, admin.first_name as admin_first_name, admin.last_name as admin_last_name
+                 FROM support_tickets st
+                 JOIN users u ON st.user_id = u.id
+                 LEFT JOIN users admin ON st.admin_id = admin.id`;
+    const params = [];
+    const conditions = [];
+
+    if (status) {
+      conditions.push(`st.status = $${params.length + 1}`);
+      params.push(status);
+    }
+    if (priority) {
+      conditions.push(`st.priority = $${params.length + 1}`);
+      params.push(priority);
+    }
+
+    if (conditions.length > 0) {
+      query += ` WHERE ${conditions.join(' AND ')}`;
+    }
+
+    query += ` ORDER BY st.created_at DESC`;
+
+    const result = await pool.query(query, params);
+    res.json({ tickets: result.rows });
+  } catch (error) {
+    console.error('Get support tickets error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get single support ticket
+router.get('/support/tickets/:id', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT st.*, u.email, u.first_name, u.last_name,
+              admin.email as admin_email, admin.first_name as admin_first_name, admin.last_name as admin_last_name
+       FROM support_tickets st
+       JOIN users u ON st.user_id = u.id
+       LEFT JOIN users admin ON st.admin_id = admin.id
+       WHERE st.id = $1`,
+      [req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Ticket not found' });
+    }
+
+    res.json({ ticket: result.rows[0] });
+  } catch (error) {
+    console.error('Get support ticket error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update support ticket status
+router.put('/support/tickets/:id/status', [
+  body('status').isIn(['open', 'in_progress', 'resolved', 'closed'])
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { status } = req.body;
+
+    const result = await pool.query(
+      `UPDATE support_tickets 
+       SET status = $1, admin_id = $2, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $3
+       RETURNING *`,
+      [status, req.user.id, req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Ticket not found' });
+    }
+
+    res.json({ ticket: result.rows[0] });
+  } catch (error) {
+    console.error('Update ticket status error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Respond to support ticket
+router.post('/support/tickets/:id/respond', [
+  body('response').notEmpty().trim().withMessage('Response is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { response } = req.body;
+
+    // Update ticket with admin response and set status to in_progress if still open
+    const result = await pool.query(
+      `UPDATE support_tickets 
+       SET admin_response = $1, 
+           admin_id = $2,
+           status = CASE WHEN status = 'open' THEN 'in_progress' ELSE status END,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $3
+       RETURNING *`,
+      [response, req.user.id, req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Ticket not found' });
+    }
+
+    res.json({ ticket: result.rows[0] });
+  } catch (error) {
+    console.error('Respond to ticket error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update ticket priority
+router.put('/support/tickets/:id/priority', [
+  body('priority').isIn(['low', 'medium', 'high', 'urgent'])
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { priority } = req.body;
+
+    const result = await pool.query(
+      `UPDATE support_tickets 
+       SET priority = $1, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2
+       RETURNING *`,
+      [priority, req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Ticket not found' });
+    }
+
+    res.json({ ticket: result.rows[0] });
+  } catch (error) {
+    console.error('Update ticket priority error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update admin response (edit response)
+router.put('/support/tickets/:id/response', [
+  body('response').notEmpty().trim().withMessage('Response is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { response } = req.body;
+
+    const result = await pool.query(
+      `UPDATE support_tickets 
+       SET admin_response = $1, 
+           admin_id = $2,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $3
+       RETURNING *`,
+      [response, req.user.id, req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Ticket not found' });
+    }
+
+    res.json({ ticket: result.rows[0] });
+  } catch (error) {
+    console.error('Update admin response error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;
 
 

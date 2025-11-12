@@ -9,6 +9,7 @@ const userRoutes = require('./routes/users');
 const transactionRoutes = require('./routes/transactions');
 const adminRoutes = require('./routes/admin');
 const cryptoRoutes = require('./routes/crypto');
+const supportRoutes = require('./routes/support');
 const { authenticateToken } = require('./middleware/auth');
 
 const app = express();
@@ -55,6 +56,7 @@ app.use('/api/users', authenticateToken, userRoutes);
 app.use('/api/transactions', authenticateToken, transactionRoutes);
 app.use('/api/admin', authenticateToken, adminRoutes);
 app.use('/api/crypto', authenticateToken, cryptoRoutes);
+app.use('/api/support', authenticateToken, supportRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
