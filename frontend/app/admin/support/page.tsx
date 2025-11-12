@@ -104,7 +104,17 @@ export default function AdminSupportPage() {
       await fetchTicket(selectedTicket.id)
       await fetchTickets(true)
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to send response')
+      console.error('Failed to send response:', error)
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          error.message || 
+                          'Failed to send response. Please try again.'
+      alert(errorMessage)
+      
+      // If it's a migration error, show helpful message
+      if (errorMessage.includes('migration') || errorMessage.includes('table does not exist')) {
+        alert('Database migration required. Please run the migration in Supabase.')
+      }
     } finally {
       setSending(false)
     }
@@ -440,4 +450,5 @@ export default function AdminSupportPage() {
     </div>
   )
 }
+
 

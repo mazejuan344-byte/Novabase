@@ -403,10 +403,19 @@ router.post('/support/tickets/:id/respond', [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return res.status(400).json({ 
+        message: 'Validation failed: ' + errors.array().map(e => e.msg).join(', '),
+        errors: errors.array() 
+      });
     }
 
     const { response } = req.body;
+
+    // Ensure response is not empty after trimming
+    const trimmedResponse = response?.trim();
+    if (!trimmedResponse) {
+      return res.status(400).json({ message: 'Response cannot be empty' });
+    }
 
     // Update ticket with admin response and set status to in_progress if still open
     const result = await pool.query(
@@ -417,7 +426,7 @@ router.post('/support/tickets/:id/respond', [
            updated_at = CURRENT_TIMESTAMP
        WHERE id = $3
        RETURNING *`,
-      [response, req.user.id, req.params.id]
+      [trimmedResponse, req.user.id, req.params.id]
     );
 
     if (result.rows.length === 0) {
@@ -427,7 +436,26 @@ router.post('/support/tickets/:id/respond', [
     res.json({ ticket: result.rows[0] });
   } catch (error) {
     console.error('Respond to ticket error:', error);
-    res.status(500).json({ message: 'Server error' });
+    
+    // Provide more detailed error messages
+    if (error.code === '42P01') {
+      return res.status(500).json({ 
+        message: 'Support tickets table does not exist. Please run the database migration.',
+        error: 'Table not found'
+      });
+    }
+    
+    if (error.code === '23503') {
+      return res.status(400).json({ 
+        message: 'Invalid admin user ID',
+        error: 'Foreign key constraint violation'
+      });
+    }
+    
+    res.status(500).json({ 
+      message: error.message || 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
