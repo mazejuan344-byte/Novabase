@@ -33,6 +33,10 @@ export default function AdminSupportPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [showConversations, setShowConversations] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const isUserScrollingRef = useRef(false)
+  const shouldAutoScrollRef = useRef(true)
+  const selectedTicketIdRef = useRef<number | null>(null)
 
   useEffect(() => {
     fetchTickets()
@@ -43,13 +47,30 @@ export default function AdminSupportPage() {
     return () => clearInterval(interval)
   }, [statusFilter])
 
+  // Track if user is manually scrolling
   useEffect(() => {
-    if (selectedTicket) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-      // Refresh the selected ticket to get latest updates
-      if (selectedTicket.id) {
-        fetchTicket(selectedTicket.id)
-      }
+    const container = messagesContainerRef.current
+    if (!container) return
+
+    let scrollTimeout: NodeJS.Timeout
+
+    const handleScroll = () => {
+      isUserScrollingRef.current = true
+      clearTimeout(scrollTimeout)
+      
+      // Check if user is near bottom (within 100px)
+      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100
+      shouldAutoScrollRef.current = isNearBottom
+      
+      scrollTimeout = setTimeout(() => {
+        isUserScrollingRef.current = false
+      }, 150)
+    }
+
+    container.addEventListener('scroll', handleScroll)
+    return () => {
+      container.removeEventListener('scroll', handleScroll)
+      clearTimeout(scrollTimeout)
     }
   }, [selectedTicket])
 
@@ -62,16 +83,20 @@ export default function AdminSupportPage() {
       const fetchedTickets = response.data.tickets || []
       setTickets(fetchedTickets)
       
-      // Update selected ticket if it exists
-      if (selectedTicket) {
+      // Only auto-select if no ticket is currently selected
+      if (!selectedTicket && fetchedTickets.length > 0) {
+        const openTicket = fetchedTickets.find((t: SupportTicket) => t.status === 'open' || t.status === 'in_progress')
+        const ticketToSelect = openTicket || fetchedTickets[0]
+        setSelectedTicket(ticketToSelect)
+        selectedTicketIdRef.current = ticketToSelect.id
+        shouldAutoScrollRef.current = true
+      } else if (selectedTicket) {
+        // Only update selected ticket data without changing selection
         const updatedTicket = fetchedTickets.find((t: SupportTicket) => t.id === selectedTicket.id)
         if (updatedTicket) {
-          setSelectedTicket(updatedTicket)
+          // Preserve selection but update data
+          setSelectedTicket(prev => prev ? updatedTicket : null)
         }
-      } else if (fetchedTickets.length > 0) {
-        // Auto-select the first open or in_progress ticket
-        const openTicket = fetchedTickets.find((t: SupportTicket) => t.status === 'open' || t.status === 'in_progress')
-        setSelectedTicket(openTicket || fetchedTickets[0])
       }
     } catch (error) {
       console.error('Failed to fetch tickets:', error)
@@ -84,9 +109,15 @@ export default function AdminSupportPage() {
   const fetchTicket = async (ticketId: number) => {
     try {
       const response = await api.get(`/admin/support/tickets/${ticketId}`)
-      setSelectedTicket(response.data.ticket)
+      const ticket = response.data.ticket
+      
+      // Only update if this is still the selected ticket
+      if (selectedTicketIdRef.current === ticketId) {
+        setSelectedTicket(ticket)
+      }
+      
       // Also update it in the tickets list
-      setTickets(prev => prev.map(t => t.id === ticketId ? response.data.ticket : t))
+      setTickets(prev => prev.map(t => t.id === ticketId ? ticket : t))
     } catch (error) {
       console.error('Failed to fetch ticket:', error)
     }
@@ -102,7 +133,14 @@ export default function AdminSupportPage() {
         response: response
       })
       setResponse('')
+      
+      // Enable auto-scroll after sending a message
+      shouldAutoScrollRef.current = true
+      
+      // Fetch updated ticket
       await fetchTicket(selectedTicket.id)
+      
+      // Update tickets list
       await fetchTickets(true)
     } catch (error: any) {
       console.error('Failed to send response:', error)
@@ -167,12 +205,41 @@ export default function AdminSupportPage() {
     return tickets.filter(t => t.status === 'open' || (t.status === 'in_progress' && !t.admin_response)).length
   }
 
-  // Auto-scroll to bottom when new messages arrive
+  // Handle ticket selection - scroll to bottom only when switching tickets
   useEffect(() => {
-    if (messagesEndRef.current && selectedTicket) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    if (selectedTicket) {
+      const isNewTicket = selectedTicketIdRef.current !== selectedTicket.id
+      
+      if (isNewTicket) {
+        // New ticket selected - scroll to bottom
+        selectedTicketIdRef.current = selectedTicket.id
+        shouldAutoScrollRef.current = true
+        
+        // Small delay to ensure DOM is ready
+        setTimeout(() => {
+          if (messagesEndRef.current && shouldAutoScrollRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+          }
+        }, 100)
+      }
+    } else {
+      selectedTicketIdRef.current = null
     }
-  }, [selectedTicket?.admin_response, selectedTicket?.message])
+  }, [selectedTicket?.id])
+
+  // Auto-scroll to bottom when new admin response is added (but only if user is near bottom)
+  useEffect(() => {
+    if (messagesEndRef.current && selectedTicket && selectedTicket.admin_response) {
+      // Only auto-scroll if user hasn't manually scrolled up
+      if (shouldAutoScrollRef.current && !isUserScrollingRef.current) {
+        setTimeout(() => {
+          if (messagesEndRef.current && shouldAutoScrollRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+          }
+        }, 100)
+      }
+    }
+  }, [selectedTicket?.admin_response])
 
   if (loading) {
     return (
@@ -286,6 +353,9 @@ export default function AdminSupportPage() {
                   <button
                     key={ticket.id}
                     onClick={() => {
+                      // Clear previous selection and set new one
+                      selectedTicketIdRef.current = null
+                      shouldAutoScrollRef.current = true
                       setSelectedTicket(ticket)
                       setShowConversations(false) // Hide on mobile after selection
                     }}
@@ -385,7 +455,11 @@ export default function AdminSupportPage() {
               </div>
 
               {/* Messages Area - Fixed scrollable container */}
-              <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 bg-neutral-50 dark:bg-neutral-950 min-h-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <div 
+                ref={messagesContainerRef}
+                className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 bg-neutral-50 dark:bg-neutral-950 min-h-0" 
+                style={{ WebkitOverflowScrolling: 'touch' }}
+              >
                 {/* User Message */}
                 <div className="flex justify-start">
                   <div className="max-w-[85%] sm:max-w-[70%] bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-2xl rounded-tl-none px-3 sm:px-4 py-2 sm:py-3 shadow-lg border border-neutral-200 dark:border-neutral-700">
