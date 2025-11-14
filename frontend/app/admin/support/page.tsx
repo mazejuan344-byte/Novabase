@@ -182,8 +182,6 @@ export default function AdminSupportPage() {
     )
   }
 
-  const [showConversations, setShowConversations] = useState(true)
-
   return (
     <div className="h-[calc(100vh-8rem)] min-h-0 flex flex-col">
       {/* Header */}
