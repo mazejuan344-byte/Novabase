@@ -523,6 +523,51 @@ router.put('/support/tickets/:id/response', [
   }
 });
 
+// Delete support ticket
+router.delete('/support/tickets/:id', async (req, res) => {
+  try {
+    // First check if ticket exists
+    const checkResult = await pool.query(
+      'SELECT id FROM support_tickets WHERE id = $1',
+      [req.params.id]
+    );
+
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Ticket not found' });
+    }
+
+    // Delete the ticket
+    await pool.query(
+      'DELETE FROM support_tickets WHERE id = $1',
+      [req.params.id]
+    );
+
+    res.json({ message: 'Ticket deleted successfully' });
+  } catch (error) {
+    console.error('Delete ticket error:', error);
+    
+    // Provide more detailed error messages
+    if (error.code === '42P01') {
+      return res.status(500).json({ 
+        message: 'Support tickets table does not exist. Please run the database migration.',
+        error: 'Table not found'
+      });
+    }
+    
+    if (error.code === '23503') {
+      return res.status(400).json({ 
+        message: 'Cannot delete ticket due to foreign key constraints',
+        error: 'Foreign key constraint violation'
+      });
+    }
+    
+    res.status(500).json({ 
+      message: error.message || 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 module.exports = router;
 
 

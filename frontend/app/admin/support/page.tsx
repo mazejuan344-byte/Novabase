@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import api from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
-import { FiSend, FiMessageCircle, FiUser, FiShield, FiMenu, FiX, FiCheckCircle, FiClock, FiAlertCircle } from 'react-icons/fi'
+import { FiSend, FiMessageCircle, FiUser, FiShield, FiMenu, FiX, FiCheckCircle, FiClock, FiAlertCircle, FiTrash2 } from 'react-icons/fi'
 import { motion } from 'framer-motion'
 
 interface SupportTicket {
@@ -32,6 +32,7 @@ export default function AdminSupportPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [refreshing, setRefreshing] = useState(false)
   const [showConversations, setShowConversations] = useState(true)
+  const [deleting, setDeleting] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const isUserScrollingRef = useRef(false)
@@ -168,6 +169,43 @@ export default function AdminSupportPage() {
       await fetchTickets(true)
     } catch (error: any) {
       alert(error.response?.data?.message || 'Failed to update status')
+    }
+  }
+
+  const handleDeleteTicket = async () => {
+    if (!selectedTicket) return
+
+    // Confirmation dialog
+    const confirmMessage = `Are you sure you want to delete this support ticket?\n\nFrom: ${getUserName(selectedTicket)}\nSubject: ${selectedTicket.subject}\n\nThis action cannot be undone.`
+    
+    if (!window.confirm(confirmMessage)) {
+      return
+    }
+
+    setDeleting(true)
+    try {
+      await api.delete(`/admin/support/tickets/${selectedTicket.id}`)
+      
+      // Clear selection and refresh tickets list
+      setSelectedTicket(null)
+      selectedTicketIdRef.current = null
+      
+      // Refresh tickets list
+      await fetchTickets()
+      
+      // Auto-select first ticket if available
+      setTimeout(() => {
+        fetchTickets()
+      }, 100)
+    } catch (error: any) {
+      console.error('Failed to delete ticket:', error)
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          error.message || 
+                          'Failed to delete ticket. Please try again.'
+      alert(errorMessage)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -451,6 +489,14 @@ export default function AdminSupportPage() {
                       Close
                     </button>
                   )}
+                  <button
+                    onClick={handleDeleteTicket}
+                    disabled={deleting}
+                    className="px-2 sm:px-3 py-1 sm:py-1.5 bg-red-500/80 hover:bg-red-600 text-white text-xs rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1.5"
+                  >
+                    <FiTrash2 className="w-3 h-3" />
+                    <span>{deleting ? 'Deleting...' : 'Delete'}</span>
+                  </button>
                 </div>
               </div>
 
