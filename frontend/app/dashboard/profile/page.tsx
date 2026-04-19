@@ -65,14 +65,53 @@ export default function ProfilePage() {
       return
     }
 
-    const reader = new FileReader()
-    reader.onload = () => {
-      setFormData((prev) => ({
-        ...prev,
-        [field]: typeof reader.result === 'string' ? reader.result : ''
-      }))
-    }
-    reader.readAsDataURL(file)
+    compressImage(file)
+      .then((compressedImage) => {
+        setFormData((prev) => ({
+          ...prev,
+          [field]: compressedImage
+        }))
+      })
+      .catch(() => {
+        alert('Failed to process image. Please try another file.')
+      })
+  }
+
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const image = new Image()
+        image.onload = () => {
+          const canvas = document.createElement('canvas')
+          const maxWidth = 1200
+          const scale = image.width > maxWidth ? maxWidth / image.width : 1
+          canvas.width = Math.round(image.width * scale)
+          canvas.height = Math.round(image.height * scale)
+
+          const context = canvas.getContext('2d')
+          if (!context) {
+            reject(new Error('Canvas context unavailable'))
+            return
+          }
+
+          context.drawImage(image, 0, 0, canvas.width, canvas.height)
+          const compressed = canvas.toDataURL('image/jpeg', 0.75)
+
+          // Keep each encoded image reasonably small for hosted API limits.
+          if (compressed.length > 2.5 * 1024 * 1024) {
+            reject(new Error('Compressed image too large'))
+            return
+          }
+
+          resolve(compressed)
+        }
+        image.onerror = () => reject(new Error('Invalid image'))
+        image.src = typeof reader.result === 'string' ? reader.result : ''
+      }
+      reader.onerror = () => reject(new Error('Read failed'))
+      reader.readAsDataURL(file)
+    })
   }
 
   const getKYCStatusColor = (status: string) => {
