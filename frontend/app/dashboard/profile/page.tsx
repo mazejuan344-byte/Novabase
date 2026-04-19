@@ -175,28 +175,44 @@ export default function ProfilePage() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-neutral-700 dark:text-neutral-300">ID Front</label>
+                  <div className="block text-sm font-medium mb-2 text-neutral-700 dark:text-neutral-300">ID Front</div>
                   <input
+                    id="id-front-upload"
                     type="file"
                     accept="image/*"
                     onChange={(e) => handleIdFileChange('idFrontImage', e.target.files?.[0])}
-                    className="w-full text-sm text-neutral-700 dark:text-neutral-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-100 dark:file:bg-blue-900/30 file:text-blue-700 dark:file:text-blue-300"
+                    className="hidden"
                   />
-                  {formData.idFrontImage && (
-                    <img src={formData.idFrontImage} alt="ID front preview" className="mt-3 h-36 w-full object-cover rounded-xl border border-neutral-200 dark:border-neutral-700" />
-                  )}
+                  <label
+                    htmlFor="id-front-upload"
+                    className="h-40 w-full rounded-xl border border-dashed border-neutral-300 dark:border-neutral-700 cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 transition-colors flex items-center justify-center overflow-hidden bg-neutral-50 dark:bg-neutral-800/40"
+                  >
+                    {formData.idFrontImage ? (
+                      <img src={formData.idFrontImage} alt="ID front preview" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-sm text-neutral-500 dark:text-neutral-400 px-4 text-center">Click to upload ID front image</span>
+                    )}
+                  </label>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-neutral-700 dark:text-neutral-300">ID Back</label>
+                  <div className="block text-sm font-medium mb-2 text-neutral-700 dark:text-neutral-300">ID Back</div>
                   <input
+                    id="id-back-upload"
                     type="file"
                     accept="image/*"
                     onChange={(e) => handleIdFileChange('idBackImage', e.target.files?.[0])}
-                    className="w-full text-sm text-neutral-700 dark:text-neutral-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-100 dark:file:bg-blue-900/30 file:text-blue-700 dark:file:text-blue-300"
+                    className="hidden"
                   />
-                  {formData.idBackImage && (
-                    <img src={formData.idBackImage} alt="ID back preview" className="mt-3 h-36 w-full object-cover rounded-xl border border-neutral-200 dark:border-neutral-700" />
-                  )}
+                  <label
+                    htmlFor="id-back-upload"
+                    className="h-40 w-full rounded-xl border border-dashed border-neutral-300 dark:border-neutral-700 cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 transition-colors flex items-center justify-center overflow-hidden bg-neutral-50 dark:bg-neutral-800/40"
+                  >
+                    {formData.idBackImage ? (
+                      <img src={formData.idBackImage} alt="ID back preview" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-sm text-neutral-500 dark:text-neutral-400 px-4 text-center">Click to upload ID back image</span>
+                    )}
+                  </label>
                 </div>
               </div>
             </div>
