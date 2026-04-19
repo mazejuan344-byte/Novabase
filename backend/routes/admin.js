@@ -13,7 +13,7 @@ router.get('/users', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.is_active, 
-              u.kyc_status, u.created_at,
+              u.kyc_status, u.created_at, u.id_front_image, u.id_back_image,
               a.balance_usd, a.balance_btc, a.balance_eth, a.balance_usdt
        FROM users u
        LEFT JOIN accounts a ON u.id = a.user_id

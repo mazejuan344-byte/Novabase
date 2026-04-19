@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react'
 import api from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
-import { FiEdit, FiUserX, FiUserCheck, FiMenu, FiX } from 'react-icons/fi'
+import { FiUserX, FiUserCheck, FiMenu, FiX, FiImage } from 'react-icons/fi'
 
 export default function AdminUsersPage() {
   const { mobileMenuOpen, toggleMobileMenu } = useAuthStore()
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [editingUser, setEditingUser] = useState<any>(null)
+  const [idPreviewUser, setIdPreviewUser] = useState<any>(null)
 
   useEffect(() => {
     fetchUsers()
@@ -86,6 +87,7 @@ export default function AdminUsersPage() {
                   <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-semibold text-neutral-900 dark:text-neutral-100">Role</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-semibold text-neutral-900 dark:text-neutral-100">KYC</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-semibold text-neutral-900 dark:text-neutral-100">Status</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-semibold text-neutral-900 dark:text-neutral-100">ID</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-semibold text-neutral-900 dark:text-neutral-100 hidden md:table-cell">Balance</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-semibold text-neutral-900 dark:text-neutral-100">Actions</th>
                 </tr>
@@ -152,6 +154,19 @@ export default function AdminUsersPage() {
                         {user.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4">
+                      {user.id_front_image || user.id_back_image ? (
+                        <button
+                          onClick={() => setIdPreviewUser(user)}
+                          className="inline-flex items-center gap-2 px-3 py-2 text-xs sm:text-sm rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:opacity-90 transition-opacity"
+                        >
+                          <FiImage className="w-4 h-4" />
+                          <span>View ID</span>
+                        </button>
+                      ) : (
+                        <span className="text-xs text-neutral-500 dark:text-neutral-400">Not uploaded</span>
+                      )}
+                    </td>
                     <td className="px-3 sm:px-6 py-3 sm:py-4 hidden md:table-cell text-xs sm:text-sm text-neutral-900 dark:text-neutral-100">
                       ${parseFloat(user.balance_usd || 0).toFixed(2)}
                     </td>
@@ -174,6 +189,47 @@ export default function AdminUsersPage() {
           </div>
         </div>
       </div>
+
+      {idPreviewUser && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className="w-full max-w-4xl bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-neutral-200 dark:border-neutral-700 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">User ID Images</h2>
+                <p className="text-sm text-neutral-600 dark:text-neutral-400">{idPreviewUser.email}</p>
+              </div>
+              <button
+                onClick={() => setIdPreviewUser(null)}
+                className="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
+              >
+                <FiX className="w-5 h-5 text-neutral-800 dark:text-neutral-200" />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Front</p>
+                {idPreviewUser.id_front_image ? (
+                  <img src={idPreviewUser.id_front_image} alt="User ID front" className="w-full rounded-xl border border-neutral-200 dark:border-neutral-700" />
+                ) : (
+                  <div className="h-44 rounded-xl border border-dashed border-neutral-300 dark:border-neutral-700 flex items-center justify-center text-sm text-neutral-500 dark:text-neutral-400">
+                    Not uploaded
+                  </div>
+                )}
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Back</p>
+                {idPreviewUser.id_back_image ? (
+                  <img src={idPreviewUser.id_back_image} alt="User ID back" className="w-full rounded-xl border border-neutral-200 dark:border-neutral-700" />
+                ) : (
+                  <div className="h-44 rounded-xl border border-dashed border-neutral-300 dark:border-neutral-700 flex items-center justify-center text-sm text-neutral-500 dark:text-neutral-400">
+                    Not uploaded
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

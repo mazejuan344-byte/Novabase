@@ -8,6 +8,7 @@ router.get('/profile', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.kyc_status, u.created_at,
+              u.id_front_image, u.id_back_image,
               a.balance_usd, a.balance_btc, a.balance_eth, a.balance_usdt
        FROM users u
        LEFT JOIN accounts a ON u.id = a.user_id
@@ -29,11 +30,14 @@ router.get('/profile', async (req, res) => {
 // Update user profile
 router.put('/profile', async (req, res) => {
   try {
-    const { firstName, lastName } = req.body;
+    const { firstName, lastName, idFrontImage, idBackImage } = req.body;
 
     const result = await pool.query(
-      'UPDATE users SET first_name = $1, last_name = $2 WHERE id = $3 RETURNING id, email, first_name, last_name',
-      [firstName || null, lastName || null, req.user.id]
+      `UPDATE users 
+       SET first_name = $1, last_name = $2, id_front_image = $3, id_back_image = $4
+       WHERE id = $5
+       RETURNING id, email, first_name, last_name, id_front_image, id_back_image`,
+      [firstName || null, lastName || null, idFrontImage || null, idBackImage || null, req.user.id]
     );
 
     res.json({ user: result.rows[0] });
@@ -83,6 +87,15 @@ router.get('/dashboard', async (req, res) => {
 });
 
 module.exports = router;
+
+
+
+
+
+
+
+
+
 
 
 

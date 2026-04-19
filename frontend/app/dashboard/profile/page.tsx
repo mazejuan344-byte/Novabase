@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import api from '@/lib/api'
-import { FiUser, FiMail, FiShield, FiEdit2, FiSave, FiX, FiCheckCircle } from 'react-icons/fi'
+import { FiUser, FiMail, FiShield, FiEdit2, FiSave, FiX, FiCheckCircle, FiImage } from 'react-icons/fi'
 import { motion } from 'framer-motion'
 
 export default function ProfilePage() {
@@ -11,7 +11,9 @@ export default function ProfilePage() {
   const [editing, setEditing] = useState(false)
   const [formData, setFormData] = useState({
     firstName: '',
-    lastName: ''
+    lastName: '',
+    idFrontImage: '',
+    idBackImage: ''
   })
 
   useEffect(() => {
@@ -25,7 +27,9 @@ export default function ProfilePage() {
       setProfile(user)
       setFormData({
         firstName: user.first_name || '',
-        lastName: user.last_name || ''
+        lastName: user.last_name || '',
+        idFrontImage: user.id_front_image || '',
+        idBackImage: user.id_back_image || ''
       })
     } catch (error) {
       console.error('Failed to fetch profile:', error)
@@ -44,6 +48,27 @@ export default function ProfilePage() {
     } catch (error: any) {
       alert(error.response?.data?.message || 'Failed to update profile')
     }
+  }
+
+  const handleIdFileChange = (field: 'idFrontImage' | 'idBackImage', file?: File) => {
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size must be 5MB or less')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: typeof reader.result === 'string' ? reader.result : ''
+      }))
+    }
+    reader.readAsDataURL(file)
   }
 
   const getKYCStatusColor = (status: string) => {
@@ -143,6 +168,38 @@ export default function ProfilePage() {
                 />
               </div>
             </div>
+            <div className="border-t border-neutral-200 dark:border-neutral-700 pt-6">
+              <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4 flex items-center gap-2">
+                <FiImage className="text-blue-600 dark:text-blue-400" />
+                <span>ID Verification Photos</span>
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-neutral-700 dark:text-neutral-300">ID Front</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleIdFileChange('idFrontImage', e.target.files?.[0])}
+                    className="w-full text-sm text-neutral-700 dark:text-neutral-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-100 dark:file:bg-blue-900/30 file:text-blue-700 dark:file:text-blue-300"
+                  />
+                  {formData.idFrontImage && (
+                    <img src={formData.idFrontImage} alt="ID front preview" className="mt-3 h-36 w-full object-cover rounded-xl border border-neutral-200 dark:border-neutral-700" />
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-neutral-700 dark:text-neutral-300">ID Back</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleIdFileChange('idBackImage', e.target.files?.[0])}
+                    className="w-full text-sm text-neutral-700 dark:text-neutral-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-100 dark:file:bg-blue-900/30 file:text-blue-700 dark:file:text-blue-300"
+                  />
+                  {formData.idBackImage && (
+                    <img src={formData.idBackImage} alt="ID back preview" className="mt-3 h-36 w-full object-cover rounded-xl border border-neutral-200 dark:border-neutral-700" />
+                  )}
+                </div>
+              </div>
+            </div>
             <div className="flex space-x-4 pt-4">
               <button
                 type="submit"
@@ -204,6 +261,37 @@ export default function ProfilePage() {
                       <span className="capitalize">{profile?.kyc_status || 'pending'}</span>
                     </span>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <FiImage className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div className="text-sm text-neutral-600 dark:text-neutral-400">Uploaded ID Images</div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-2">Front</div>
+                  {profile?.id_front_image ? (
+                    <img src={profile.id_front_image} alt="Uploaded ID front" className="h-36 w-full object-cover rounded-xl border border-neutral-200 dark:border-neutral-700" />
+                  ) : (
+                    <div className="h-36 rounded-xl border border-dashed border-neutral-300 dark:border-neutral-700 flex items-center justify-center text-sm text-neutral-500 dark:text-neutral-400">
+                      Not uploaded
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-2">Back</div>
+                  {profile?.id_back_image ? (
+                    <img src={profile.id_back_image} alt="Uploaded ID back" className="h-36 w-full object-cover rounded-xl border border-neutral-200 dark:border-neutral-700" />
+                  ) : (
+                    <div className="h-36 rounded-xl border border-dashed border-neutral-300 dark:border-neutral-700 flex items-center justify-center text-sm text-neutral-500 dark:text-neutral-400">
+                      Not uploaded
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

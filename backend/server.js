@@ -80,7 +80,7 @@ if (!disableRateLimit) {
 }
 
 // Body parsing
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Routes (auth routes are before general limiter to use authLimiter)
