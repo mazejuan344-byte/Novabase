@@ -3,9 +3,27 @@ const pool = require('../db');
 
 const router = express.Router();
 
+let idImageColumnsChecked = false;
+
+async function ensureUserIdImageColumns() {
+  if (idImageColumnsChecked) {
+    return;
+  }
+
+  await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS id_front_image TEXT,
+    ADD COLUMN IF NOT EXISTS id_back_image TEXT
+  `);
+
+  idImageColumnsChecked = true;
+}
+
 // Get user profile
 router.get('/profile', async (req, res) => {
   try {
+    await ensureUserIdImageColumns();
+
     const result = await pool.query(
       `SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.kyc_status, u.created_at,
               u.id_front_image, u.id_back_image,
@@ -30,6 +48,8 @@ router.get('/profile', async (req, res) => {
 // Update user profile
 router.put('/profile', async (req, res) => {
   try {
+    await ensureUserIdImageColumns();
+
     const { firstName, lastName, idFrontImage, idBackImage } = req.body;
 
     const result = await pool.query(

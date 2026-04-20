@@ -4,6 +4,21 @@ const pool = require('../db');
 const { requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
+let idImageColumnsChecked = false;
+
+async function ensureUserIdImageColumns() {
+  if (idImageColumnsChecked) {
+    return;
+  }
+
+  await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS id_front_image TEXT,
+    ADD COLUMN IF NOT EXISTS id_back_image TEXT
+  `);
+
+  idImageColumnsChecked = true;
+}
 
 // All admin routes require admin role
 router.use(requireAdmin);
@@ -11,6 +26,8 @@ router.use(requireAdmin);
 // Get all users
 router.get('/users', async (req, res) => {
   try {
+    await ensureUserIdImageColumns();
+
     const result = await pool.query(
       `SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.is_active, 
               u.kyc_status, u.created_at,
@@ -32,6 +49,8 @@ router.get('/users', async (req, res) => {
 // Get user by ID
 router.get('/users/:id', async (req, res) => {
   try {
+    await ensureUserIdImageColumns();
+
     const result = await pool.query(
       `SELECT u.*, a.* FROM users u
        LEFT JOIN accounts a ON u.id = a.user_id
